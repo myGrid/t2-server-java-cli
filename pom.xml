@@ -8,7 +8,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>uk.org.taverna</groupId>
 	<artifactId>t2-server-java-cli</artifactId>
-	<version>0.0.1</version>
+	<version>0.0.3-SNAPSHOT</version>
 	<name>Taverna Server Java CLI Tools</name>
 	<licenses>
 		<license>
@@ -33,7 +33,7 @@
 		<dependency>
 			<groupId>uk.org.taverna</groupId>
 			<artifactId>t2-server-client</artifactId>
-			<version>0.0.1</version>
+			<version>0.0.3-SNAPSHOT</version>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>

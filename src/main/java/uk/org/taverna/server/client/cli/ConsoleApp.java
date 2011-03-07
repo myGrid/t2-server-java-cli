@@ -127,7 +127,7 @@ public abstract class ConsoleApp {
 	}
 
 	private void showVersionAndExit() {
-		System.out.println("Taverna 2 Server Java Lib version: 0.0.1");
+		System.out.println("Taverna 2 Server Java Lib version: 0.0.3");
 		System.out.println("Taverna 2 Server REST API version: 2.2a");
 		System.exit(0);
 	}
