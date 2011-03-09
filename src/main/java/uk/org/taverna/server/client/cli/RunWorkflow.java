@@ -71,6 +71,7 @@ public final class RunWorkflow extends ConsoleApp {
 
 		// parse inputs
 		Map<String, String> inputs = getInputs(line);
+		Map<String, File> files = getInputFiles(line);
 
 		boolean outputRefs = false;
 		if (line.hasOption('r')) {
@@ -113,6 +114,22 @@ public final class RunWorkflow extends ConsoleApp {
 					String value = inputs.get(port);
 					run.setInput(port, value);
 					System.out.format("Set input '%s' to %s\n", port, value);
+				}
+			}
+
+			if (files != null) {
+				for (String port : files.keySet()) {
+					File file = files.get(port);
+					try {
+						run.uploadInputFile(port, file);
+						System.out.format(
+								"Set input '%s' to use file '%s' as input\n",
+								port, file.getName());
+					} catch (IOException e) {
+						System.err.format("Could not set input '%s': %s\n",
+								port, e.getMessage());
+						System.exit(1);
+					}
 				}
 			}
 		}
@@ -225,6 +242,22 @@ public final class RunWorkflow extends ConsoleApp {
 		return inputs;
 	}
 
+	private Map<String, File> getInputFiles(CommandLine line) {
+		HashMap<String, File> files = null;
+
+		if (line.hasOption('f')) {
+			files = new HashMap<String, File>();
+			String[] pairs = line.getOptionValues('f');
+
+			for (String s : pairs) {
+				String[] pair = s.trim().split(":", 2);
+				files.put(pair[0], new File(pair[1]));
+			}
+		}
+
+		return files;
+	}
+
 	@Override
 	@SuppressWarnings("static-access")
 	public List<Option> registerOptions() {
@@ -249,6 +282,12 @@ public final class RunWorkflow extends ConsoleApp {
 		opts.add(OptionBuilder.withLongOpt("input")
 				.withDescription("Set input port INPUT to VALUE").hasArg()
 				.withArgName("INPUT:VALUE").create('i'));
+
+		opts.add(OptionBuilder
+				.withLongOpt("input-file")
+				.withDescription(
+						"Set input port INPUT to use FILE for its input")
+				.hasArg().withArgName("INPUT:FILE").create('f'));
 
 		opts.add(OptionBuilder
 				.withLongOpt("output-refs")
