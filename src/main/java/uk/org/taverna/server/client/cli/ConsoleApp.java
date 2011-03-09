@@ -32,6 +32,7 @@
 
 package uk.org.taverna.server.client.cli;
 
+import java.net.URI;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
@@ -144,11 +145,11 @@ public abstract class ConsoleApp {
 
 		for (String arg : args) {
 			try {
-				server = Server.connect(arg);
+				server = Server.connect(new URI(arg));
 
 				return server;
 			} catch (Exception e) {
-				// not a URI, ignore
+				// not a URI, or cannot connect, ignore
 				server = null;
 			}
 		}
