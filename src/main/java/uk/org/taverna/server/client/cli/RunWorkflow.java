@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2011 The University of Manchester, UK.
+ * Copyright (c) 2010-2012 The University of Manchester, UK.
  *
  * All rights reserved.
  *
@@ -15,7 +15,7 @@
  *
  * * Neither the names of The University of Manchester nor the names of its
  *   contributors may be used to endorse or promote products derived from this
- *   software without specific prior written permission. 
+ *   software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -46,6 +46,9 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
 
+import uk.org.taverna.server.client.Credentials;
+import uk.org.taverna.server.client.InputPort;
+import uk.org.taverna.server.client.OutputPort;
 import uk.org.taverna.server.client.Run;
 import uk.org.taverna.server.client.RunStatus;
 import uk.org.taverna.server.client.Server;
@@ -83,6 +86,11 @@ public final class RunWorkflow extends ConsoleApp {
 			deleteRun = true;
 		}
 
+		boolean noWait = false;
+		if (line.hasOption('n')) {
+			noWait = true;
+		}
+
 		File baclavaIn = null;
 		if (line.hasOption('b')) {
 			baclavaIn = new File(line.getOptionValue('b'));
@@ -93,41 +101,41 @@ public final class RunWorkflow extends ConsoleApp {
 			baclavaOut = new File(line.getOptionValue('o', "out.xml"));
 		}
 
+		File zipOutput = null;
+		if (line.hasOption('z')) {
+			zipOutput = new File(line.getOptionValue('z', "out.zip"));
+		}
+
 		// get server address from left over arguments
 		Server server = getServer(line.getArgs());
+		Credentials credentials = getCredentials();
 
 		// create run
-		Run run = server.createRun(workflow);
-		System.out.println("Created run with uuid: " + run.getUUID());
+		Run run = server.createRun(workflow, credentials);
+		System.out.println("Created run with uuid: " + run.getIdentifier());
 		System.out.println("Created at " + run.getCreateTime());
 
 		// set inputs
 		if (baclavaIn != null) {
-			try {
-				run.uploadBaclavaFile(baclavaIn);
-			} catch (IOException e) {
-				System.out.println(e);
-			}
+			run.setBaclavaInput(baclavaIn);
+			System.out.println("Uploaded baclava input file");
 		} else {
-			if (inputs != null) {
-				for (String port : inputs.keySet()) {
-					String value = inputs.get(port);
-					run.setInput(port, value);
-					System.out.format("Set input '%s' to %s\n", port, value);
-				}
-			}
-
-			if (files != null) {
-				for (String port : files.keySet()) {
-					File file = files.get(port);
-					try {
-						run.uploadInputFile(port, file);
-						System.out.format(
-								"Set input '%s' to use file '%s' as input\n",
-								port, file.getName());
-					} catch (IOException e) {
-						System.err.format("Could not set input '%s': %s\n",
-								port, e.getMessage());
+			Map<String, InputPort> inPorts = run.getInputPorts();
+			if (inPorts != null) {
+				for (InputPort port : inPorts.values()) {
+					String input = port.getName();
+					if (inputs.containsKey(input)) {
+						port.setValue(inputs.get(input));
+						System.out.format("Input '%s' set to %s\n", input,
+								port.getValue());
+					} else if (files.containsKey(input)) {
+						port.setFile(files.get(input));
+						System.out.format("Input '%s' set to use file '%s'\n",
+								input, port.getFile());
+					} else {
+						System.out.format("Input '%s' has not been set.\n",
+								input);
+						run.delete();
 						System.exit(1);
 					}
 				}
@@ -136,12 +144,18 @@ public final class RunWorkflow extends ConsoleApp {
 
 		// output baclava?
 		if (baclavaOut != null) {
-			run.setBaclavaOutput(baclavaOut.getName());
+			run.setBaclavaOutput();
 		}
 
 		// Start run and wait until it is finished
 		run.start();
 		System.out.println("Started at " + run.getStartTime());
+
+		// bail out if user doesn't want to wait
+		if (noWait) {
+			System.exit(0);
+		}
+
 		System.out.print("Running");
 		while (run.getStatus() == RunStatus.RUNNING) {
 			try {
@@ -157,10 +171,10 @@ public final class RunWorkflow extends ConsoleApp {
 		String stderr = run.getConsoleError();
 		int exitcode = run.getExitCode();
 		System.out.println("Exitcode: " + exitcode);
-		if (stdout != "") {
+		if (!stdout.equalsIgnoreCase("")) {
 			System.out.println("Stdout:\n" + stdout);
 		}
-		if (stderr != "") {
+		if (!stderr.equalsIgnoreCase("")) {
 			System.out.println("Stderr:\n" + stderr);
 		}
 
@@ -175,11 +189,26 @@ public final class RunWorkflow extends ConsoleApp {
 					System.out.format("Could not write baclava file '%s'\n",
 							baclavaOut.getAbsoluteFile());
 				}
+			} else if (zipOutput != null) {
+				try {
+					FileUtils.writeByteArrayToFile(zipOutput,
+							run.getZipOutput());
+					System.out.format("Zip file written to '%s'", zipOutput);
+				} catch (IOException e) {
+					System.out.format("Could not write zip file '%s'\n",
+							zipOutput.getAbsolutePath());
+				}
 			} else {
+				Map<String, OutputPort> outputs = run.getOutputPorts();
 				System.out.println("Outputs:");
-				for (String port : run.getOutputPorts()) {
-					System.out.format("          %s -> %s\n", port,
-							run.getOutput(port, outputRefs));
+				for (OutputPort port : outputs.values()) {
+					System.out.format("          %s (%d) -> ", port.getName(),
+							port.getDepth());
+					if (outputRefs) {
+						System.out.println(port.getReference());
+					} else {
+						System.out.println(port);
+					}
 				}
 			}
 		}
@@ -271,13 +300,13 @@ public final class RunWorkflow extends ConsoleApp {
 				.withLongOpt("baclava-out")
 				.withDescription(
 						"Return outputs in baclava format. A filename may be specified or 'out.xml' is used")
-				.hasOptionalArg().withArgName("BACLAVA").create('o'));
+						.hasOptionalArg().withArgName("BACLAVA").create('o'));
 
 		opts.add(OptionBuilder
 				.withLongOpt("workflow")
 				.withDescription(
 						"The workflow to run. If this is not specified then the workflow is read from standard input")
-				.hasArg().withArgName("WORKFLOW").create('w'));
+						.hasArg().withArgName("WORKFLOW").create('w'));
 
 		opts.add(OptionBuilder.withLongOpt("input")
 				.withDescription("Set input port INPUT to VALUE").hasArg()
@@ -287,13 +316,19 @@ public final class RunWorkflow extends ConsoleApp {
 				.withLongOpt("input-file")
 				.withDescription(
 						"Set input port INPUT to use FILE for its input")
-				.hasArg().withArgName("INPUT:FILE").create('f'));
+						.hasArg().withArgName("INPUT:FILE").create('f'));
+
+		opts.add(OptionBuilder
+				.withLongOpt("no-wait")
+				.withDescription(
+						"Do not wait for workflow to finish, return once it has started running")
+						.create('n'));
 
 		opts.add(OptionBuilder
 				.withLongOpt("output-refs")
 				.withDescription(
 						"Return URIs that point to the data items of the output rather than the data items themselves.")
-				.create('r'));
+						.create('r'));
 
 		opts.add(OptionBuilder
 				.withLongOpt("delete")
@@ -301,7 +336,13 @@ public final class RunWorkflow extends ConsoleApp {
 						"Delete the run from the server when it is "
 								+ "complete. By default the run and its results are preserved. Note that "
 								+ "the run will still be deleted when its expiry time is reached")
-				.create('D'));
+								.create('D'));
+
+		opts.add(OptionBuilder
+				.withLongOpt("zip")
+				.withDescription(
+						"Get the entire working directory of the run in zip format and save it to the provided filename.")
+						.hasOptionalArg().withArgName("FILE").create('z'));
 
 		return opts;
 	}
