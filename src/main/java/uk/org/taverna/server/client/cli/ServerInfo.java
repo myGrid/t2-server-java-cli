@@ -66,7 +66,7 @@ public final class ServerInfo extends ConsoleApp {
 		System.out.println("  Run limit: " + server.getRunLimit(credentials));
 		System.out.println("No. of runs: " + runs.size());
 		for (Run run : runs) {
-			System.out.println(run.getUUID() + " - " + run.getExpiry());
+			System.out.println(run.getIdentifier() + " - " + run.getExpiry());
 		}
 	}
 }

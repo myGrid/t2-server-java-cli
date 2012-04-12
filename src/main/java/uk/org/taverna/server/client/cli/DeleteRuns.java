@@ -71,11 +71,13 @@ public final class DeleteRuns extends ConsoleApp {
 		Server server = getServer(args);
 		UserCredentials credentials = getCredentials();
 
-		ArrayList<UUID> runs = new ArrayList<UUID>();
+		ArrayList<String> runs = new ArrayList<String>();
 		for (String arg : args) {
 			try {
-				UUID run = UUID.fromString(arg);
-				runs.add(run);
+				// We don't store ids as UUIDs but this is what they are so
+				// use this fact to help us parse them out of the args.
+				UUID.fromString(arg);
+				runs.add(arg);
 			} catch (IllegalArgumentException e) {
 				// not a UUID, ignore
 			}
@@ -89,11 +91,12 @@ public final class DeleteRuns extends ConsoleApp {
 				showHelpAndExit(1);
 			}
 
-			for (UUID u : runs) {
+			for (String id : runs) {
 				try {
-					server.deleteRun(u, credentials);
+					server.deleteRun(id, credentials);
 				} catch (RunNotFoundException e) {
-					System.out.println("Run '" + u + "' not found - skipping.");
+					System.out
+					.println("Run '" + id + "' not found - skipping.");
 				}
 			}
 		}

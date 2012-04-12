@@ -100,7 +100,7 @@ public final class RunWorkflow extends ConsoleApp {
 
 		// create run
 		Run run = server.createRun(workflow, credentials);
-		System.out.println("Created run with uuid: " + run.getUUID());
+		System.out.println("Created run with id: " + run.getIdentifier());
 		System.out.println("Created at " + run.getCreateTime());
 
 		// set inputs
