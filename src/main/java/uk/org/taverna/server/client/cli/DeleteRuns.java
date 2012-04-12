@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2011 The University of Manchester, UK.
+ * Copyright (c) 2010-2012 The University of Manchester, UK.
  *
  * All rights reserved.
  *
@@ -15,7 +15,7 @@
  *
  * * Neither the names of The University of Manchester nor the names of its
  *   contributors may be used to endorse or promote products derived from this
- *   software without specific prior written permission. 
+ *   software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -41,6 +41,7 @@ import org.apache.commons.cli.Option;
 
 import uk.org.taverna.server.client.RunNotFoundException;
 import uk.org.taverna.server.client.Server;
+import uk.org.taverna.server.client.connection.UserCredentials;
 
 /**
  * 
@@ -68,6 +69,7 @@ public final class DeleteRuns extends ConsoleApp {
 		// get server address and run ids from left over arguments
 		String[] args = line.getArgs();
 		Server server = getServer(args);
+		UserCredentials credentials = getCredentials();
 
 		ArrayList<UUID> runs = new ArrayList<UUID>();
 		for (String arg : args) {
@@ -81,7 +83,7 @@ public final class DeleteRuns extends ConsoleApp {
 
 		// delete things
 		if (deleteAll) {
-			server.deleteAllRuns();
+			server.deleteAllRuns(credentials);
 		} else {
 			if (runs.size() == 0) {
 				showHelpAndExit(1);
@@ -89,7 +91,7 @@ public final class DeleteRuns extends ConsoleApp {
 
 			for (UUID u : runs) {
 				try {
-					server.deleteRun(u);
+					server.deleteRun(u, credentials);
 				} catch (RunNotFoundException e) {
 					System.out.println("Run '" + u + "' not found - skipping.");
 				}

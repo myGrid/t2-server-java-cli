@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The University of Manchester, UK.
+ * Copyright (c) 2011, 2012 The University of Manchester, UK.
  *
  * All rights reserved.
  *
@@ -15,7 +15,7 @@
  *
  * * Neither the names of The University of Manchester nor the names of its
  *   contributors may be used to endorse or promote products derived from this
- *   software without specific prior written permission. 
+ *   software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -39,11 +39,14 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 
 import uk.org.taverna.server.client.Server;
+import uk.org.taverna.server.client.connection.HttpBasicCredentials;
+import uk.org.taverna.server.client.connection.UserCredentials;
 
 /**
  * @author Robert Haines
@@ -59,6 +62,9 @@ public abstract class ConsoleApp {
 	private String usage = "[options] server-address";
 	private final String header = "\nWhere server-address is the full URI of the server to connect to, e.g.: http://example.com:8080/taverna, and [options] can be:";
 	private final String footer;
+
+	// user/host options
+	private UserCredentials credentials;
 
 	// common options
 	private final Options options;
@@ -89,8 +95,18 @@ public abstract class ConsoleApp {
 		return null;
 	}
 
+	@SuppressWarnings("static-access")
 	protected CommandLine parseOpts(List<Option> opts, String[] args) {
 		// create common options
+		options.addOption(OptionBuilder.withLongOpt("username")
+				.withDescription("The username to use for server operations")
+				.hasArg().withArgName("USERNAME").create('u'));
+		options.addOption(OptionBuilder
+				.withLongOpt("password")
+				.withDescription(
+						"The password to use for the supplied username")
+						.hasArg().withArgName("PASSWORD").create('p'));
+
 		options.addOption("h", "help", false, "Show this help and exit");
 		options.addOption("v", "version", false, "Show the version and exit");
 
@@ -106,6 +122,19 @@ public abstract class ConsoleApp {
 		CommandLine line = null;
 		try {
 			line = parser.parse(options, args);
+
+			// password option
+			String password = "";
+			if (line.hasOption('p')) {
+				password = line.getOptionValue('p');
+			}
+
+			// username option
+			String username;
+			if (line.hasOption('u')) {
+				username = line.getOptionValue('u');
+				credentials = new HttpBasicCredentials(username, password);
+			}
 
 			// help option
 			if (line.hasOption("h")) {
@@ -159,5 +188,9 @@ public abstract class ConsoleApp {
 		}
 
 		return server;
+	}
+
+	protected UserCredentials getCredentials() {
+		return credentials;
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2011 The University of Manchester, UK.
+ * Copyright (c) 2010-2012 The University of Manchester, UK.
  *
  * All rights reserved.
  *
@@ -15,7 +15,7 @@
  *
  * * Neither the names of The University of Manchester nor the names of its
  *   contributors may be used to endorse or promote products derived from this
- *   software without specific prior written permission. 
+ *   software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -49,6 +49,7 @@ import org.apache.commons.io.FileUtils;
 import uk.org.taverna.server.client.Run;
 import uk.org.taverna.server.client.RunStatus;
 import uk.org.taverna.server.client.Server;
+import uk.org.taverna.server.client.connection.UserCredentials;
 
 /**
  * 
@@ -95,9 +96,10 @@ public final class RunWorkflow extends ConsoleApp {
 
 		// get server address from left over arguments
 		Server server = getServer(line.getArgs());
+		UserCredentials credentials = getCredentials();
 
 		// create run
-		Run run = server.createRun(workflow);
+		Run run = server.createRun(workflow, credentials);
 		System.out.println("Created run with uuid: " + run.getUUID());
 		System.out.println("Created at " + run.getCreateTime());
 
@@ -271,13 +273,13 @@ public final class RunWorkflow extends ConsoleApp {
 				.withLongOpt("baclava-out")
 				.withDescription(
 						"Return outputs in baclava format. A filename may be specified or 'out.xml' is used")
-				.hasOptionalArg().withArgName("BACLAVA").create('o'));
+						.hasOptionalArg().withArgName("BACLAVA").create('o'));
 
 		opts.add(OptionBuilder
 				.withLongOpt("workflow")
 				.withDescription(
 						"The workflow to run. If this is not specified then the workflow is read from standard input")
-				.hasArg().withArgName("WORKFLOW").create('w'));
+						.hasArg().withArgName("WORKFLOW").create('w'));
 
 		opts.add(OptionBuilder.withLongOpt("input")
 				.withDescription("Set input port INPUT to VALUE").hasArg()
@@ -287,13 +289,13 @@ public final class RunWorkflow extends ConsoleApp {
 				.withLongOpt("input-file")
 				.withDescription(
 						"Set input port INPUT to use FILE for its input")
-				.hasArg().withArgName("INPUT:FILE").create('f'));
+						.hasArg().withArgName("INPUT:FILE").create('f'));
 
 		opts.add(OptionBuilder
 				.withLongOpt("output-refs")
 				.withDescription(
 						"Return URIs that point to the data items of the output rather than the data items themselves.")
-				.create('r'));
+						.create('r'));
 
 		opts.add(OptionBuilder
 				.withLongOpt("delete")
@@ -301,7 +303,7 @@ public final class RunWorkflow extends ConsoleApp {
 						"Delete the run from the server when it is "
 								+ "complete. By default the run and its results are preserved. Note that "
 								+ "the run will still be deleted when its expiry time is reached")
-				.create('D'));
+								.create('D'));
 
 		return opts;
 	}

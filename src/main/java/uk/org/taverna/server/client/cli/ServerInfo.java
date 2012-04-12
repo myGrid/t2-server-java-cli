@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2011 The University of Manchester, UK.
+ * Copyright (c) 2010-2012 The University of Manchester, UK.
  *
  * All rights reserved.
  *
@@ -15,7 +15,7 @@
  *
  * * Neither the names of The University of Manchester nor the names of its
  *   contributors may be used to endorse or promote products derived from this
- *   software without specific prior written permission. 
+ *   software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -38,6 +38,7 @@ import org.apache.commons.cli.CommandLine;
 
 import uk.org.taverna.server.client.Run;
 import uk.org.taverna.server.client.Server;
+import uk.org.taverna.server.client.connection.UserCredentials;
 
 /**
  * 
@@ -57,10 +58,12 @@ public final class ServerInfo extends ConsoleApp {
 
 		// get server address from left over arguments
 		Server server = getServer(line.getArgs());
+		UserCredentials credentials = getCredentials();
 
-		Collection<Run> runs = server.getRuns();
+		Collection<Run> runs = server.getRuns(credentials);
 		System.out.println("     Server: " + server.getUri());
-		System.out.println("  Run limit: " + server.getRunLimit());
+		System.out.println("    Version: " + server.getVersion());
+		System.out.println("  Run limit: " + server.getRunLimit(credentials));
 		System.out.println("No. of runs: " + runs.size());
 		for (Run run : runs) {
 			System.out.println(run.getUUID() + " - " + run.getExpiry());
