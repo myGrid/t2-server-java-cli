@@ -46,6 +46,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
 
+import uk.org.taverna.server.client.InputPort;
 import uk.org.taverna.server.client.Run;
 import uk.org.taverna.server.client.RunStatus;
 import uk.org.taverna.server.client.Server;
@@ -111,27 +112,22 @@ public final class RunWorkflow extends ConsoleApp {
 				System.out.println(e);
 			}
 		} else {
-			if (inputs != null) {
-				for (String port : inputs.keySet()) {
-					String value = inputs.get(port);
-					run.setInput(port, value);
-					System.out.format("Set input '%s' to %s\n", port, value);
-				}
-			}
-
-			if (files != null) {
-				for (String port : files.keySet()) {
-					File file = files.get(port);
-					try {
-						run.uploadInputFile(port, file);
-						System.out.format(
-								"Set input '%s' to use file '%s' as input\n",
-								port, file.getName());
-					} catch (IOException e) {
-						System.err.format("Could not set input '%s': %s\n",
-								port, e.getMessage());
-						System.exit(1);
-					}
+			Map<String, InputPort> ports = run.getInputPorts();
+			for (String name : ports.keySet()) {
+				if (inputs.containsKey(name)) {
+					String value = inputs.get(name);
+					ports.get(name).setValue(value);
+					System.out.format("Set input '%s' to '%s'\n", name, value);
+				} else if (files.containsKey(name)) {
+					File file = files.get(name);
+					ports.get(name).setFile(file);
+					System.out.format(
+							"Set input '%s' to use file '%s' as input\n", name,
+							file.getName());
+				} else {
+					System.out.format("Input '%s' has not been set.", name);
+					run.delete();
+					System.exit(1);
 				}
 			}
 		}
@@ -142,7 +138,14 @@ public final class RunWorkflow extends ConsoleApp {
 		}
 
 		// Start run and wait until it is finished
-		run.start();
+		try {
+			run.start();
+		} catch (IOException e) {
+			System.out.println("One of the files you set as an input could "
+					+ "not be read. Full error is:\n" + e.getMessage());
+			run.delete();
+			System.exit(1);
+		}
 		System.out.println("Started at " + run.getStartTime());
 		System.out.print("Running");
 		while (run.getStatus() == RunStatus.RUNNING) {
@@ -229,10 +232,9 @@ public final class RunWorkflow extends ConsoleApp {
 	}
 
 	private Map<String, String> getInputs(CommandLine line) {
-		HashMap<String, String> inputs = null;
+		HashMap<String, String> inputs = new HashMap<String, String>();
 
 		if (line.hasOption('i')) {
-			inputs = new HashMap<String, String>();
 			String[] pairs = line.getOptionValues('i');
 
 			for (String s : pairs) {
@@ -245,10 +247,9 @@ public final class RunWorkflow extends ConsoleApp {
 	}
 
 	private Map<String, File> getInputFiles(CommandLine line) {
-		HashMap<String, File> files = null;
+		HashMap<String, File> files = new HashMap<String, File>();
 
 		if (line.hasOption('f')) {
-			files = new HashMap<String, File>();
 			String[] pairs = line.getOptionValues('f');
 
 			for (String s : pairs) {
