@@ -107,7 +107,8 @@ public final class RunWorkflow extends ConsoleApp {
 		// set inputs
 		if (baclavaIn != null) {
 			try {
-				run.uploadBaclavaFile(baclavaIn);
+				run.setBaclavaInput(baclavaIn);
+				System.out.println("Uploaded baclava input file");
 			} catch (IOException e) {
 				System.out.println(e);
 			}
@@ -134,7 +135,7 @@ public final class RunWorkflow extends ConsoleApp {
 
 		// output baclava?
 		if (baclavaOut != null) {
-			run.setBaclavaOutput(baclavaOut.getName());
+			run.requestBaclavaOutput();
 		}
 
 		// Start run and wait until it is finished
