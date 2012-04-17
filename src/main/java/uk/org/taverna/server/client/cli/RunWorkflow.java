@@ -47,6 +47,7 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
 
 import uk.org.taverna.server.client.InputPort;
+import uk.org.taverna.server.client.OutputPort;
 import uk.org.taverna.server.client.Run;
 import uk.org.taverna.server.client.RunStatus;
 import uk.org.taverna.server.client.Server;
@@ -183,9 +184,14 @@ public final class RunWorkflow extends ConsoleApp {
 				}
 			} else {
 				System.out.println("Outputs:");
-				for (String port : run.getOutputPorts()) {
-					System.out.format("          %s -> %s\n", port,
-							run.getOutput(port, outputRefs));
+				for (OutputPort port : run.getOutputPorts().values()) {
+					System.out.format("          %s (%d) -> ", port.getName(),
+							port.getDepth());
+					if (outputRefs) {
+						System.out.println(port.getValue().getReference());
+					} else {
+						System.out.println(port);
+					}
 				}
 			}
 		}
