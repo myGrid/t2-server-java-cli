@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The University of Manchester, UK.
+ * Copyright (c) 2011, 2012 The University of Manchester, UK.
  *
  * All rights reserved.
  *
@@ -15,7 +15,7 @@
  *
  * * Neither the names of The University of Manchester nor the names of its
  *   contributors may be used to endorse or promote products derived from this
- *   software without specific prior written permission. 
+ *   software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -100,7 +100,7 @@ public final class AppDispatcher {
 				+ ", and [options] are program specific. To see program "
 				+ "specific help, use:\nprogram -h";
 		String footer = "Current available programs are:\n * ServerInfo"
-				+ "\n * RunWorkflow\n * DeleteRuns";
+				+ "\n * RunWorkflow\n * DeleteRuns\n * GetOutput";
 		HelpFormatter help = new HelpFormatter();
 		help.printHelp("program [options] server-address", header,
 				new Options(), footer);
