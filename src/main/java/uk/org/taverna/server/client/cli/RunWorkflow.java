@@ -70,7 +70,7 @@ public final class RunWorkflow extends ConsoleApp {
 	public void run(CommandLine line) {
 
 		// load workflow
-		String workflow = getWorkflow(line);
+		byte[] workflow = getWorkflow(line);
 
 		// parse inputs
 		Map<String, String> inputs = getInputs(line);
@@ -203,13 +203,13 @@ public final class RunWorkflow extends ConsoleApp {
 		}
 	}
 
-	private String getWorkflow(CommandLine line) {
-		String workflow = null;
+	private byte[] getWorkflow(CommandLine line) {
+		byte[] workflow = null;
 		if (line.hasOption('w')) {
 			String wkfFilename = line.getOptionValue('w');
 			File wkfFile = new File(wkfFilename);
 			try {
-				workflow = FileUtils.readFileToString(wkfFile);
+				workflow = FileUtils.readFileToByteArray(wkfFile);
 			} catch (IOException e) {
 				System.out.format("Cannot read file '%s'. %s", wkfFilename,
 						e.toString());
@@ -218,15 +218,18 @@ public final class RunWorkflow extends ConsoleApp {
 
 		// try to read workflow stdin
 		if (workflow == null) {
+			String wkf = null;
 			try {
 				BufferedReader in = new BufferedReader(new InputStreamReader(
 						System.in));
 				while (in.ready()) {
-					workflow += in.readLine();
+					wkf += in.readLine();
 				}
 			} catch (IOException e) {
 				System.out.println("Cannot read workflow from input stream.");
 			}
+
+			workflow = wkf.getBytes();
 		}
 
 		// still no workflow?
