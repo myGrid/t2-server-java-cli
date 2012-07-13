@@ -49,6 +49,7 @@ import org.apache.commons.io.FileUtils;
 import uk.org.taverna.server.client.InputPort;
 import uk.org.taverna.server.client.OutputPort;
 import uk.org.taverna.server.client.Run;
+import uk.org.taverna.server.client.RunInputsNotSetException;
 import uk.org.taverna.server.client.RunStatus;
 import uk.org.taverna.server.client.Server;
 import uk.org.taverna.server.client.connection.UserCredentials;
@@ -126,10 +127,6 @@ public final class RunWorkflow extends ConsoleApp {
 					System.out.format(
 							"Set input '%s' to use file '%s' as input\n", name,
 							file.getName());
-				} else {
-					System.out.format("Input '%s' has not been set.", name);
-					run.delete();
-					System.exit(1);
 				}
 			}
 		}
@@ -147,7 +144,15 @@ public final class RunWorkflow extends ConsoleApp {
 					+ "not be read. Full error is:\n" + e.getMessage());
 			run.delete();
 			System.exit(1);
+		} catch (RunInputsNotSetException e) {
+			System.out.println("At least one input has not been set:");
+			for (String name : e.getInputNames()) {
+				System.out.println(" - " + name);
+			}
+			run.delete();
+			System.exit(1);
 		}
+
 		System.out.println("Started at " + run.getStartTime());
 		System.out.print("Running");
 		while (run.getStatus() == RunStatus.RUNNING) {
