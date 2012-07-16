@@ -34,6 +34,7 @@ package uk.org.taverna.server.client.cli;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -122,11 +123,17 @@ public final class RunWorkflow extends ConsoleApp {
 					ports.get(name).setValue(value);
 					System.out.format("Set input '%s' to '%s'\n", name, value);
 				} else if (files.containsKey(name)) {
-					File file = files.get(name);
-					ports.get(name).setFile(file);
-					System.out.format(
-							"Set input '%s' to use file '%s' as input\n", name,
-							file.getName());
+					try {
+						File file = files.get(name);
+						ports.get(name).setFile(file);
+						System.out.format(
+								"Set input '%s' to use file '%s' as input\n", name,
+								file.getName());
+					} catch (FileNotFoundException e) {
+						System.out.println(e.getMessage());
+						run.delete();
+						System.exit(1);
+					}
 				}
 			}
 		}
