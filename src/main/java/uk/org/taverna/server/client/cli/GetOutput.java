@@ -33,15 +33,12 @@
 package uk.org.taverna.server.client.cli;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 
 import uk.org.taverna.server.client.OutputPort;
 import uk.org.taverna.server.client.PortValue;
@@ -68,22 +65,9 @@ public final class GetOutput extends ConsoleApp {
 	@Override
 	public void run(CommandLine line) {
 
-		// Parse data value coordinates
-		Map<String, int[]> outputCoords = getCoords(line);
-
-		boolean outputRefs = false;
-		if (line.hasOption('r')) {
-			outputRefs = true;
-		}
-
-		boolean types = false;
-		if (line.hasOption('T')) {
-			types = true;
-		}
-
-		boolean totalSize = false;
-		if (line.hasOption('t')) {
-			totalSize = true;
+		boolean outputData = false;
+		if (line.hasOption('d')) {
+			outputData = true;
 		}
 
 		// Get server address and run id from left over arguments.
@@ -118,72 +102,33 @@ public final class GetOutput extends ConsoleApp {
 		for (String name : ports) {
 			// Get port and and data coords if we have them
 			OutputPort port = run.getOutputPort(name);
-			int[] coords = new int[0];
-			if (outputCoords.containsKey(name)) {
-				coords = outputCoords.get(name);
-			}
-			PortValue value = port.getValue(coords);
 
 			// Print info
-			System.out.println(port.getName());
-			if (outputRefs) {
-				System.out.format("  Reference: %s\n", value.getReference());
-			} else {
-				if (value.isError()) {
-					System.out.format("  ERROR: %s\n", value.getError());
-				} else {
-					System.out.format("  Value: %s\n", value.getStringData());
+			if (outputData && port.getDepth() <= 1) {
+				System.out.format("%s (depth %d) {\n", port.getName(),
+						port.getDepth());
+				for (PortValue p : port.getValue()) {
+					System.out.format(" Reference:    %s\n", p.getReference());
+					System.out
+					.format(" Content type: %s\n", p.getContentType());
+					System.out.format(" Data size:    %s\n", p.getDataSize());
+					System.out.format(" Data: <<\n%s\n>>\n",
+							p.getDataAsString());
 				}
-			}
-
-			if (types) {
-				System.out.format("  Type: %s\n", value.getDataType());
-			}
-
-			if (totalSize) {
-				System.out
-				.format("  Total size: %d\n", port.getTotalDataSize());
+			} else {
+				System.out.println(port);
 			}
 		}
 	}
 
 	@Override
-	@SuppressWarnings("static-access")
 	public List<Option> registerOptions() {
 		ArrayList<Option> opts = new ArrayList<Option>();
 
-		opts.add(OptionBuilder.withLongOpt("coords").withDescription("")
-				.hasArg().withArgName("OUTPUT:X,Y,...").create());
-
-		opts.add(new Option("r", "refs", false, "Return references to the "
-				+ "output data rather than the data itself."));
-
-		opts.add(new Option("t", "total-size", false,
-				"Return the total size of the data in the output."));
-
-		opts.add(new Option("T", "types", false,
-				"Return the mime types of singleton ports."));
+		opts.add(new Option("d", "data", false, "Return the actual output data"
+				+ " rather than a reference to it. This will only take effect"
+				+ " for ports with a depth of zero or one."));
 
 		return opts;
-	}
-
-	private Map<String, int[]> getCoords(CommandLine line) {
-		HashMap<String, int[]> coords = new HashMap<String, int[]>();
-
-		if (line.hasOption("coords")) {
-			String[] pairs = line.getOptionValues("coords");
-
-			for (String s : pairs) {
-				String[] pair = s.trim().split(":", 2);
-				String[] cs = pair[1].split(",");
-				int[] list = new int[cs.length];
-				for (int i = 0; i < list.length; i++) {
-					list[i] = Integer.parseInt(cs[i]);
-				}
-				coords.put(pair[0], list);
-			}
-		}
-
-		return coords;
 	}
 }

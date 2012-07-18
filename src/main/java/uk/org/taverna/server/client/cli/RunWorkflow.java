@@ -78,11 +78,6 @@ public final class RunWorkflow extends ConsoleApp {
 		Map<String, String> inputs = getInputs(line);
 		Map<String, File> files = getInputFiles(line);
 
-		boolean outputRefs = false;
-		if (line.hasOption('r')) {
-			outputRefs = true;
-		}
-
 		boolean deleteRun = false;
 		if (line.hasOption('D')) {
 			deleteRun = true;
@@ -197,13 +192,7 @@ public final class RunWorkflow extends ConsoleApp {
 			} else {
 				System.out.println("Outputs:");
 				for (OutputPort port : run.getOutputPorts().values()) {
-					System.out.format("          %s (%d) -> ", port.getName(),
-							port.getDepth());
-					if (outputRefs) {
-						System.out.println(port.getValue().getReference());
-					} else {
-						System.out.println(port);
-					}
+					System.out.println(port);
 				}
 			}
 		}
@@ -313,12 +302,6 @@ public final class RunWorkflow extends ConsoleApp {
 				.withDescription(
 						"Set input port INPUT to use FILE for its input")
 						.hasArg().withArgName("INPUT:FILE").create('f'));
-
-		opts.add(OptionBuilder
-				.withLongOpt("output-refs")
-				.withDescription(
-						"Return URIs that point to the data items of the output rather than the data items themselves.")
-						.create('r'));
 
 		opts.add(OptionBuilder
 				.withLongOpt("delete")
