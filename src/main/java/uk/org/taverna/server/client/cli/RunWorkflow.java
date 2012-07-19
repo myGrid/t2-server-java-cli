@@ -181,8 +181,7 @@ public final class RunWorkflow extends ConsoleApp {
 		if (exitcode == 0) {
 			if (baclavaOut != null) {
 				try {
-					FileUtils.writeByteArrayToFile(baclavaOut,
-							run.getBaclavaOutput());
+					run.writeBaclavaOutputToFile(baclavaOut);
 					System.out.format("Baclava file written to '%s'\n",
 							baclavaOut);
 				} catch (IOException e) {

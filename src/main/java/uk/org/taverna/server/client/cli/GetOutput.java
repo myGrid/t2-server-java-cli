@@ -32,6 +32,8 @@
 
 package uk.org.taverna.server.client.cli;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -39,6 +41,7 @@ import java.util.UUID;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
+import org.apache.commons.io.IOUtils;
 
 import uk.org.taverna.server.client.OutputPort;
 import uk.org.taverna.server.client.PortValue;
@@ -112,9 +115,21 @@ public final class GetOutput extends ConsoleApp {
 					System.out
 					.format(" Content type: %s\n", p.getContentType());
 					System.out.format(" Data size:    %s\n", p.getDataSize());
-					System.out.format(" Data: <<\n%s\n>>\n",
-							p.getDataAsString());
+					System.out.println(" Data: <<");
+
+					InputStream is = p.getDataStream();
+					try {
+						IOUtils.copyLarge(is, System.out);
+					} catch (IOException e) {
+						System.out
+						.println("Failed to stream output data from the server: "
+								+ e);
+					} finally {
+						IOUtils.closeQuietly(is);
+					}
+					System.out.println("\n>>");
 				}
+				System.out.println("}");
 			} else {
 				System.out.println(port);
 			}
