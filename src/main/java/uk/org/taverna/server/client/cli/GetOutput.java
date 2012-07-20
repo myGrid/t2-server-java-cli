@@ -101,6 +101,25 @@ public final class GetOutput extends ConsoleApp {
 			System.exit(1);
 		}
 
+		// If the run was configured to output baclava data then get it.
+		if (run.isBaclavaOutput()) {
+			System.out.println("Run has output in baclava format:");
+
+			InputStream is = run.getBaclavaOutputStream();
+			try {
+				IOUtils.copyLarge(is, System.out);
+			} catch (IOException e) {
+				System.out
+						.println("Failed to stream baclava data from the server: "
+						+ e);
+			} finally {
+				IOUtils.closeQuietly(is);
+			}
+
+			// That's all, exit now.
+			System.exit(0);
+		}
+
 		Set<String> ports = run.getOutputPorts().keySet();
 		for (String name : ports) {
 			// Get port and and data coords if we have them
