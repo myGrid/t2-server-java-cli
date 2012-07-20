@@ -93,6 +93,11 @@ public final class RunWorkflow extends ConsoleApp {
 			baclavaOut = new File(line.getOptionValue('o', "out.xml"));
 		}
 
+		File zipOut = null;
+		if (line.hasOption('z')) {
+			zipOut = new File(line.getOptionValue('z'));
+		}
+
 		// get server address from left over arguments
 		Server server = getServer(line.getArgs());
 		UserCredentials credentials = getCredentials();
@@ -187,6 +192,14 @@ public final class RunWorkflow extends ConsoleApp {
 				} catch (IOException e) {
 					System.out.format("Could not write baclava file '%s'\n",
 							baclavaOut.getAbsoluteFile());
+				}
+			} else if (zipOut != null) {
+				try {
+					run.writeOutputToZipFile(zipOut);
+					System.out.format("Zip file written to '%s'\n", zipOut);
+				} catch (IOException e) {
+					System.out.format("Could not write zip file '%s'\n",
+							zipOut.getAbsoluteFile());
 				}
 			} else {
 				System.out.println("Outputs:");
@@ -310,6 +323,10 @@ public final class RunWorkflow extends ConsoleApp {
 								+ "the run will still be deleted when its expiry time is reached")
 								.create('D'));
 
+		opts.add(OptionBuilder.withLongOpt("zip")
+				.withDescription("Save the output of the run in zip format")
+				.hasArg()
+				.withArgName("ZIPFILE").create('z'));
 		return opts;
 	}
 }
