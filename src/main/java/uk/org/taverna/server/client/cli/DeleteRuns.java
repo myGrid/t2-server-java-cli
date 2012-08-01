@@ -33,13 +33,14 @@
 package uk.org.taverna.server.client.cli;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 
-import uk.org.taverna.server.client.RunNotFoundException;
+import uk.org.taverna.server.client.Run;
 import uk.org.taverna.server.client.Server;
 import uk.org.taverna.server.client.connection.UserCredentials;
 
@@ -71,13 +72,13 @@ public final class DeleteRuns extends ConsoleApp {
 		Server server = getServer(args);
 		UserCredentials credentials = getCredentials();
 
-		ArrayList<String> runs = new ArrayList<String>();
+		ArrayList<String> ids = new ArrayList<String>();
 		for (String arg : args) {
 			try {
 				// We don't store ids as UUIDs but this is what they are so
 				// use this fact to help us parse them out of the args.
 				UUID.fromString(arg);
-				runs.add(arg);
+				ids.add(arg);
 			} catch (IllegalArgumentException e) {
 				// not a UUID, ignore
 			}
@@ -87,16 +88,15 @@ public final class DeleteRuns extends ConsoleApp {
 		if (deleteAll) {
 			server.deleteAllRuns(credentials);
 		} else {
-			if (runs.size() == 0) {
+			if (ids.size() == 0) {
 				showHelpAndExit(1);
 			}
 
-			for (String id : runs) {
-				try {
-					server.deleteRun(id, credentials);
-				} catch (RunNotFoundException e) {
-					System.out
-					.println("Run '" + id + "' not found - skipping.");
+			Collection<Run> runs = server.getRuns(credentials);
+			for (Run run : runs) {
+				String id = run.getIdentifier();
+				if (ids.contains(id)) {
+					run.delete();
 				}
 			}
 		}
