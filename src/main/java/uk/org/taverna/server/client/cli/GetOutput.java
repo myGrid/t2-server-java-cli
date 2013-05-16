@@ -44,7 +44,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.io.IOUtils;
 
 import uk.org.taverna.server.client.OutputPort;
-import uk.org.taverna.server.client.PortValue;
+import uk.org.taverna.server.client.AbstractPortValue;
 import uk.org.taverna.server.client.Run;
 import uk.org.taverna.server.client.Server;
 import uk.org.taverna.server.client.connection.UserCredentials;
@@ -129,7 +129,7 @@ public final class GetOutput extends ConsoleApp {
 			if (outputData && port.getDepth() <= 1) {
 				System.out.format("%s (depth %d) {\n", port.getName(),
 						port.getDepth());
-				for (PortValue p : port.getValue()) {
+				for (AbstractPortValue p : port.getValue()) {
 					System.out.format(" Reference:    %s\n", p.getReference());
 					System.out
 					.format(" Content type: %s\n", p.getContentType());
