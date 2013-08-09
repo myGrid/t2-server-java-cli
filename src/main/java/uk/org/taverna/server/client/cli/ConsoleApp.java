@@ -174,7 +174,7 @@ public abstract class ConsoleApp {
 
 		for (String arg : args) {
 			try {
-				server = Server.connect(new URI(arg));
+				server = new Server(new URI(arg));
 
 				return server;
 			} catch (Exception e) {

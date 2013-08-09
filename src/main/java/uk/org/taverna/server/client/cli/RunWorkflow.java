@@ -34,6 +34,7 @@ package uk.org.taverna.server.client.cli;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -49,6 +50,7 @@ import org.apache.commons.io.FileUtils;
 import uk.org.taverna.server.client.InputPort;
 import uk.org.taverna.server.client.OutputPort;
 import uk.org.taverna.server.client.Run;
+import uk.org.taverna.server.client.RunInputsNotSetException;
 import uk.org.taverna.server.client.RunStatus;
 import uk.org.taverna.server.client.Server;
 import uk.org.taverna.server.client.connection.UserCredentials;
@@ -70,16 +72,11 @@ public final class RunWorkflow extends ConsoleApp {
 	public void run(CommandLine line) {
 
 		// load workflow
-		String workflow = getWorkflow(line);
+		byte[] workflow = getWorkflow(line);
 
 		// parse inputs
 		Map<String, String> inputs = getInputs(line);
 		Map<String, File> files = getInputFiles(line);
-
-		boolean outputRefs = false;
-		if (line.hasOption('r')) {
-			outputRefs = true;
-		}
 
 		boolean deleteRun = false;
 		if (line.hasOption('D')) {
@@ -94,6 +91,11 @@ public final class RunWorkflow extends ConsoleApp {
 		File baclavaOut = null;
 		if (line.hasOption('o')) {
 			baclavaOut = new File(line.getOptionValue('o', "out.xml"));
+		}
+
+		File zipOut = null;
+		if (line.hasOption('z')) {
+			zipOut = new File(line.getOptionValue('z'));
 		}
 
 		// get server address from left over arguments
@@ -121,15 +123,17 @@ public final class RunWorkflow extends ConsoleApp {
 					ports.get(name).setValue(value);
 					System.out.format("Set input '%s' to '%s'\n", name, value);
 				} else if (files.containsKey(name)) {
-					File file = files.get(name);
-					ports.get(name).setFile(file);
-					System.out.format(
-							"Set input '%s' to use file '%s' as input\n", name,
-							file.getName());
-				} else {
-					System.out.format("Input '%s' has not been set.", name);
-					run.delete();
-					System.exit(1);
+					try {
+						File file = files.get(name);
+						ports.get(name).setFile(file);
+						System.out.format(
+								"Set input '%s' to use file '%s' as input\n", name,
+								file.getName());
+					} catch (FileNotFoundException e) {
+						System.out.println(e.getMessage());
+						run.delete();
+						System.exit(1);
+					}
 				}
 			}
 		}
@@ -147,7 +151,15 @@ public final class RunWorkflow extends ConsoleApp {
 					+ "not be read. Full error is:\n" + e.getMessage());
 			run.delete();
 			System.exit(1);
+		} catch (RunInputsNotSetException e) {
+			System.out.println("At least one input has not been set:");
+			for (String name : e.getInputNames()) {
+				System.out.println(" - " + name);
+			}
+			run.delete();
+			System.exit(1);
 		}
+
 		System.out.println("Started at " + run.getStartTime());
 		System.out.print("Running");
 		while (run.getStatus() == RunStatus.RUNNING) {
@@ -174,24 +186,25 @@ public final class RunWorkflow extends ConsoleApp {
 		if (exitcode == 0) {
 			if (baclavaOut != null) {
 				try {
-					FileUtils.writeStringToFile(baclavaOut,
-							run.getBaclavaOutput());
+					run.writeBaclavaOutputToFile(baclavaOut);
 					System.out.format("Baclava file written to '%s'\n",
 							baclavaOut);
 				} catch (IOException e) {
 					System.out.format("Could not write baclava file '%s'\n",
 							baclavaOut.getAbsoluteFile());
 				}
+			} else if (zipOut != null) {
+				try {
+					run.writeOutputToZipFile(zipOut);
+					System.out.format("Zip file written to '%s'\n", zipOut);
+				} catch (IOException e) {
+					System.out.format("Could not write zip file '%s'\n",
+							zipOut.getAbsoluteFile());
+				}
 			} else {
 				System.out.println("Outputs:");
 				for (OutputPort port : run.getOutputPorts().values()) {
-					System.out.format("          %s (%d) -> ", port.getName(),
-							port.getDepth());
-					if (outputRefs) {
-						System.out.println(port.getValue().getReference());
-					} else {
-						System.out.println(port);
-					}
+					System.out.println(port);
 				}
 			}
 		}
@@ -203,13 +216,13 @@ public final class RunWorkflow extends ConsoleApp {
 		}
 	}
 
-	private String getWorkflow(CommandLine line) {
-		String workflow = null;
+	private byte[] getWorkflow(CommandLine line) {
+		byte[] workflow = null;
 		if (line.hasOption('w')) {
 			String wkfFilename = line.getOptionValue('w');
 			File wkfFile = new File(wkfFilename);
 			try {
-				workflow = FileUtils.readFileToString(wkfFile);
+				workflow = FileUtils.readFileToByteArray(wkfFile);
 			} catch (IOException e) {
 				System.out.format("Cannot read file '%s'. %s", wkfFilename,
 						e.toString());
@@ -218,15 +231,18 @@ public final class RunWorkflow extends ConsoleApp {
 
 		// try to read workflow stdin
 		if (workflow == null) {
+			String wkf = null;
 			try {
 				BufferedReader in = new BufferedReader(new InputStreamReader(
 						System.in));
 				while (in.ready()) {
-					workflow += in.readLine();
+					wkf += in.readLine();
 				}
 			} catch (IOException e) {
 				System.out.println("Cannot read workflow from input stream.");
 			}
+
+			workflow = wkf.getBytes();
 		}
 
 		// still no workflow?
@@ -300,12 +316,6 @@ public final class RunWorkflow extends ConsoleApp {
 						.hasArg().withArgName("INPUT:FILE").create('f'));
 
 		opts.add(OptionBuilder
-				.withLongOpt("output-refs")
-				.withDescription(
-						"Return URIs that point to the data items of the output rather than the data items themselves.")
-						.create('r'));
-
-		opts.add(OptionBuilder
 				.withLongOpt("delete")
 				.withDescription(
 						"Delete the run from the server when it is "
@@ -313,6 +323,10 @@ public final class RunWorkflow extends ConsoleApp {
 								+ "the run will still be deleted when its expiry time is reached")
 								.create('D'));
 
+		opts.add(OptionBuilder.withLongOpt("zip")
+				.withDescription("Save the output of the run in zip format")
+				.hasArg()
+				.withArgName("ZIPFILE").create('z'));
 		return opts;
 	}
 }

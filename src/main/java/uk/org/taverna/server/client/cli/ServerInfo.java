@@ -61,7 +61,7 @@ public final class ServerInfo extends ConsoleApp {
 		UserCredentials credentials = getCredentials();
 
 		Collection<Run> runs = server.getRuns(credentials);
-		System.out.println("     Server: " + server.getUri());
+		System.out.println("     Server: " + server.getURI());
 		System.out.println("    Version: " + server.getVersion());
 		System.out.println("  Run limit: " + server.getRunLimit(credentials));
 		System.out.println("No. of runs: " + runs.size());
